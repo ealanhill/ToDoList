@@ -5,9 +5,10 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 
 class ToDoListAdapter(
-    private val items: List<String>,
     private val onClick: (Int) -> Unit
 ) : RecyclerView.Adapter<ToDoViewHolder>() {
+
+    var items: List<String> = emptyList()
 
     override fun getItemCount(): Int = items.size
 

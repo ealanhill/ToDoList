@@ -7,15 +7,17 @@ import android.view.ViewGroup
 import android.widget.EditText
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.DividerItemDecoration
-import androidx.recyclerview.widget.DividerItemDecoration.HORIZONTAL
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 
-class MainActivity : AppCompatActivity() {
+class MainActivity
+    : AppCompatActivity(), ToDoListContract.View {
 
-    private val toDoItems: MutableList<String> = mutableListOf()
-    private val toDoListAdapter = ToDoListAdapter(toDoItems) { position ->
+    // create the presenter by passing in the View
+    private val presenter: ToDoListPresenter = ToDoListPresenter(this)
+    // note that the adapter was changed
+    private val toDoListAdapter = ToDoListAdapter { position ->
         onItemRemoved(position)
     }
 
@@ -31,9 +33,28 @@ class MainActivity : AppCompatActivity() {
         findViewById<FloatingActionButton>(R.id.add_item).setOnClickListener { onAddItem() }
     }
 
-    private fun onItemRemoved(position: Int) {
-        toDoItems.removeAt(position)
+    override fun onResume() {
+        super.onResume()
+        presenter.onResume()
+    }
+
+    override fun setList(items: List<String>) {
+        toDoListAdapter.apply {
+            this.items = items
+            notifyDataSetChanged()
+        }
+    }
+
+    override fun notifyItemRemoved(position: Int) {
         toDoListAdapter.notifyItemRemoved(position)
+    }
+
+    override fun notifyItemAdded(position: Int) {
+        toDoListAdapter.notifyItemInserted(position)
+    }
+
+    private fun onItemRemoved(position: Int) {
+        presenter.onItemRemoved(position)
     }
 
     private fun onAddItem() {
@@ -44,14 +65,8 @@ class MainActivity : AppCompatActivity() {
             .setView(contentView)
             .setPositiveButton("Add") { _, _ ->
                 val userItem = contentView.findViewById<EditText>(R.id.user_input).text.toString()
-                itemAdded(userItem)
+                presenter.onItemAdded(userItem)
             }.create()
             .show()
-    }
-
-    private fun itemAdded(item: String) {
-        toDoItems.add(item)
-        val itemInsertedAt = toDoItems.size - 1
-        toDoListAdapter.notifyItemInserted(itemInsertedAt)
     }
 }
