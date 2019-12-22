@@ -1,22 +1,61 @@
 package co.thrivemobile.todolist
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.EditText
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.databinding.ObservableArrayList
+import androidx.databinding.ObservableList.OnListChangedCallback
 import androidx.recyclerview.widget.DividerItemDecoration
-import androidx.recyclerview.widget.DividerItemDecoration.HORIZONTAL
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 class MainActivity : AppCompatActivity() {
 
-    private val toDoItems: MutableList<String> = mutableListOf()
-    private val toDoListAdapter = ToDoListAdapter(toDoItems) { position ->
-        onItemRemoved(position)
+    private val onToDoListChangedCallback = object : OnListChangedCallback<ObservableArrayList<String>>() {
+        override fun onChanged(sender: ObservableArrayList<String>?) {
+            // nothing to do
+        }
+
+        override fun onItemRangeRemoved(
+            sender: ObservableArrayList<String>?,
+            positionStart: Int,
+            itemCount: Int
+        ) {
+            toDoListAdapter.notifyItemRangeRemoved(positionStart, itemCount)
+        }
+
+        override fun onItemRangeMoved(
+            sender: ObservableArrayList<String>?,
+            fromPosition: Int,
+            toPosition: Int,
+            itemCount: Int
+        ) {
+            // do nothing, we don't allow users to move items
+        }
+
+        override fun onItemRangeInserted(
+            sender: ObservableArrayList<String>?,
+            positionStart: Int,
+            itemCount: Int
+        ) {
+            toDoListAdapter.notifyItemRangeInserted(positionStart, itemCount)
+        }
+
+        override fun onItemRangeChanged(
+            sender: ObservableArrayList<String>?,
+            positionStart: Int,
+            itemCount: Int
+        ) {
+            toDoListAdapter.notifyItemRangeChanged(positionStart, itemCount)
+        }
+    }
+    private val toDoViewModel = ToDoViewModel()
+    private val toDoListAdapter = ToDoListAdapter(toDoViewModel.items) { position ->
+        toDoViewModel.onItemRemoved(position)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,11 +68,7 @@ class MainActivity : AppCompatActivity() {
             addItemDecoration(DividerItemDecoration(this@MainActivity, RecyclerView.VERTICAL))
         }
         findViewById<FloatingActionButton>(R.id.add_item).setOnClickListener { onAddItem() }
-    }
-
-    private fun onItemRemoved(position: Int) {
-        toDoItems.removeAt(position)
-        toDoListAdapter.notifyItemRemoved(position)
+        toDoViewModel.items.addOnListChangedCallback(onToDoListChangedCallback)
     }
 
     private fun onAddItem() {
@@ -44,14 +79,8 @@ class MainActivity : AppCompatActivity() {
             .setView(contentView)
             .setPositiveButton("Add") { _, _ ->
                 val userItem = contentView.findViewById<EditText>(R.id.user_input).text.toString()
-                itemAdded(userItem)
+                toDoViewModel.onItemAdded(userItem)
             }.create()
             .show()
-    }
-
-    private fun itemAdded(item: String) {
-        toDoItems.add(item)
-        val itemInsertedAt = toDoItems.size - 1
-        toDoListAdapter.notifyItemInserted(itemInsertedAt)
     }
 }
